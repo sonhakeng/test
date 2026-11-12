@@ -112,11 +112,13 @@ footer .dts{margin-top:18px;color:var(--muted);letter-spacing:.2em;font-size:.75
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
 .mus{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;align-items:center;gap:10px;font:inherit;font-weight:800;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;background:var(--rust);color:#fff;border:2px solid var(--navy);box-shadow:4px 4px 0 var(--navy);padding:10px 14px;cursor:pointer}
+.mus{display:none!important}
 .mus:focus-visible{outline:3px solid var(--navy);outline-offset:3px}
 .mus svg{width:18px;height:18px;fill:currentColor}.mus .off{display:none}.mus.mute .on{display:none}.mus.mute .off{display:inline}
 .mus.play svg{animation:bob 1.2s ease-in-out infinite}@keyframes bob{50%{transform:scale(1.2)}}
 #cover{position:fixed;inset:0;z-index:100;display:none;place-items:center;padding:24px;background:var(--bg) repeating-linear-gradient(90deg,transparent 0 9px,var(--stripe) 9px 12px);border:0;width:100%;font:inherit;color:var(--navy);cursor:pointer;transition:opacity .8s ease,visibility .8s}
 #cover.show{display:grid}
+@media (pointer:coarse){#cover{display:grid}}
 #cover.gone{opacity:0;visibility:hidden}
 #cover:focus-visible{outline:3px solid var(--rust);outline-offset:-10px}
 #cover .c{max-width:340px;width:100%;text-align:center}
@@ -233,13 +235,15 @@ function play(){au.volume=0;var q=au.play();if(q&&q.then)q.then(function(){ui(tr
 bt.addEventListener('click',function(e){e.stopPropagation();manual=true;if(au.paused)play();else{au.pause();ui(false)}});
 function first(){document.removeEventListener('pointerdown',first);if(!manual&&au.paused)play()}
 document.addEventListener('pointerdown',first);
-document.addEventListener('visibilitychange',function(){if(document.hidden&&!au.paused){au.pause();ui(false)}});
+var was=false;document.addEventListener('visibilitychange',function(){if(document.hidden){was=!au.paused;au.pause()}else if(was){var r=au.play();if(r&&r.catch)r.catch(function(){})}});
 })();
 </script>
 <script>(function(){var c=document.getElementById('cover'),au=document.getElementById('au'),bt=document.getElementById('mus'),tx=document.getElementById('mt');
 function started(){bt.classList.remove('mute');bt.classList.add('play');tx.textContent='Tắt nhạc';bt.setAttribute('aria-label','Tắt nhạc')}
-function block(){c.classList.add('show');document.body.classList.add('lock');c.addEventListener('click',function(){c.classList.add('gone');document.body.classList.remove('lock');setTimeout(function(){c.style.display='none'},900)})}
-au.volume=.7;var p;try{p=au.play()}catch(e){}
-if(p&&p.then){p.then(started).catch(block)}else{block()}})();</script>
+function block(){c.classList.add('show');document.body.classList.add('lock');c.addEventListener('click',function(){au.volume=.7;var r=au.play();if(r&&r.then)r.then(started).catch(function(){});c.classList.add('gone');document.body.classList.remove('lock');setTimeout(function(){c.style.display='none'},900)})}
+var shown=false;function blockOnce(){if(!shown){shown=true;block()}}
+if(window.matchMedia&&matchMedia('(pointer:coarse)').matches){blockOnce()}else{au.volume=.7;var p;try{p=au.play()}catch(e){}
+if(p&&p.then){p.then(function(){if(!shown)started()}).catch(blockOnce)}else{blockOnce()}
+setTimeout(function(){if(au.paused||au.currentTime===0)blockOnce()},900)}})();</script>
 </body>
 </html>
